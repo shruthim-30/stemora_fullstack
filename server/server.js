@@ -1,6 +1,8 @@
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const db = require('./config/db');
@@ -9,6 +11,8 @@ const contentRoutes = require('./routes/contentRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 
 const app = express();
+
+// GoDaddy assigned port
 const PORT = process.env.PORT || 5000;
 
 // Middleware
@@ -17,10 +21,11 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static uploads folder
+// Static uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes
@@ -28,9 +33,9 @@ app.use('/api/enquiries', enquiryRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// Health check endpoint
+// Health check
 app.get('/api/health', (req, res) => {
-  res.json({
+  res.status(200).json({
     status: 'online',
     timestamp: new Date().toISOString(),
     service: 'Stemora Dynamic API',
@@ -38,39 +43,51 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Serve frontend build in production if available (for single-server GoDaddy deployment)
+// Serve React production build
 const clientBuildPath = path.join(__dirname, '..', 'client', 'dist');
-const fs = require('fs');
+
 if (fs.existsSync(clientBuildPath)) {
   console.log('[SERVER] Serving React production build from:', clientBuildPath);
+
   app.use(express.static(clientBuildPath));
+
   app.get('*', (req, res) => {
-    // Exclude API paths
-    if (!req.path.startsWith('/api')) {
+    if (!req.path.startsWith('/api') && !req.path.startsWith('/uploads')) {
       res.sendFile(path.join(clientBuildPath, 'index.html'));
     }
   });
+} else {
+  console.error('[SERVER] React production build not found:', clientBuildPath);
 }
 
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('[SERVER ERROR]', err.stack || err);
+
   res.status(500).json({
     success: false,
     error: err.message || 'Internal Server Error'
   });
 });
 
-// Start server after DB init
+// Start server
 async function startServer() {
-  await db.init();
-  app.listen(PORT, () => {
-    console.log(`===============================================`);
-    console.log(`🚀 Stemora Backend running on port ${PORT}`);
-    console.log(`📡 API Health: http://localhost:${PORT}/api/health`);
-    console.log(`📁 Uploads:    http://localhost:${PORT}/uploads`);
-    console.log(`===============================================`);
-  });
+  try {
+    await db.init();
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log('===============================================');
+      console.log('[SERVER] Stemora Backend running');
+      console.log('[SERVER] Port:', PORT);
+      console.log('[SERVER] Host: 0.0.0.0');
+      console.log(`[SERVER] API Health: /api/health`);
+      console.log('===============================================');
+    });
+
+  } catch (error) {
+    console.error('[SERVER STARTUP ERROR]', error);
+    process.exit(1);
+  }
 }
 
 startServer();
