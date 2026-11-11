@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy: #0D2136;
+  --teal: #1FAFA9;
+  --tealD: #0F7F7B;
+  --gold: #F2AA1F;
+  --paper: #F7FAFB;
+  --grid: #DCE8EB;
+  --mut: #4d6275;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--navy);
+  line-height: 1.55;
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px),
+                    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 32px 32px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom neo-brutalist buttons matching the original site */
+.btn-brutal {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 13px 24px;
+  border-radius: 99px;
+  border: 2.5px solid var(--navy);
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn-brutal:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--navy);
+}
+
+.btn-brutal:active {
+  transform: translate(0, 0);
+  box-shadow: 2px 2px 0 var(--navy);
+}
+
+.btn-teal {
+  background-color: var(--teal);
+  box-shadow: 4px 4px 0 var(--navy);
+  color: var(--navy);
+}
+
+.btn-gold {
+  background-color: var(--gold);
+  box-shadow: 4px 4px 0 var(--navy);
+  color: var(--navy);
+}
+
+.btn-white {
+  background-color: #ffffff;
+  color: var(--navy);
+  box-shadow: 4px 4px 0 var(--navy);
+}
+
+/* Photo Placeholder Hatching Pattern */
+.ph-pattern {
+  background: repeating-linear-gradient(
+    45deg,
+    #e6f3f3,
+    #e6f3f3 12px,
+    #f4fafa 12px,
+    #f4fafa 24px
+  );
+}
+
+/* Custom focus styles */
+:focus-visible {
+  outline: 3px solid var(--navy);
+  outline-offset: 3px;
+}
