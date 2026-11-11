@@ -21,12 +21,7 @@ export default function Footer({ onOpenAdmin }) {
           <li><a href="#learn" className="hover:text-teal-dark transition-colors">Online</a></li>
           <li><a href="#contact" className="hover:text-teal-dark transition-colors">Contact</a></li>
           <li>
-            <button
-              onClick={onOpenAdmin}
-              className="text-xs font-bold text-teal-dark hover:underline"
-            >
-              Admin Portal
-            </button>
+            
           </li>
         </ul>
       </div>

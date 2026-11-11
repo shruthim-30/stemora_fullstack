@@ -7,10 +7,10 @@ import Programmes from './components/Programmes';
 import WhyStemora from './components/WhyStemora';
 import HowItWorks from './components/HowItWorks';
 import Achievements from './components/Achievements';
-import SummerChamp from './components/SummerChamp';
+//import SummerChamp from './components/SummerChamp';
 import OnlinePlatform from './components/OnlinePlatform';
-import WallOfInnovators from './components/WallOfInnovators';
-import Testimonials from './components/Testimonials';
+//import WallOfInnovators from './components/WallOfInnovators';
+//import Testimonials from './components/Testimonials';
 import RoboticsFestival from './components/RoboticsFestival';
 import ContactSection from './components/ContactSection';
 import Footer from './components/Footer';
@@ -73,21 +73,12 @@ export default function App() {
       {/* 8. Achievements & Dynamic Statistics */}
       <Achievements stats={content.stats} />
 
-      {/* 9. Summer Champ 2027 */}
-      <SummerChamp settings={content.settings} />
+     
 
       {/* 10. Stemora Online Learning Platform */}
       <OnlinePlatform />
 
-      {/* 11. Wall of Innovators */}
-      <WallOfInnovators 
-        innovators={content.innovators} 
-        onPhotoUpdate={handlePhotoUpdate}
-      />
-
-      {/* 12. Testimonials */}
-      <Testimonials testimonials={content.testimonials} />
-
+      
       {/* 13. Stemora Robotics Festival */}
       <RoboticsFestival />
 

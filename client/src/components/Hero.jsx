@@ -1,9 +1,10 @@
+
 import React from 'react';
-import PhotoPlaceholder from './PhotoPlaceholder';
 
 export default function Hero() {
   return (
     <header className="pt-14 pb-20 text-center max-w-[1120px] mx-auto px-6 lg:px-8">
+
       {/* Pill Badge */}
       <div className="inline-block bg-white border-2.5 border-navy rounded-full px-4 py-1.5 font-bold text-sm mb-6 shadow-sm">
         Lighting Young Minds
@@ -33,23 +34,36 @@ export default function Hero() {
         </a>
       </div>
 
-      {/* Hero 3-Photo Showcase */}
+      {/* Real Workshop Photography */}
       <div className="grid grid-cols-1 md:grid-cols-[1.3fr_1fr_1fr] gap-[22px] text-left">
-        <PhotoPlaceholder
-          label="Students building robots"
-          minHeight="260px"
-          className="w-full"
-        />
-        <PhotoPlaceholder
-          label="Classroom session"
-          minHeight="260px"
-          className="w-full"
-        />
-        <PhotoPlaceholder
-          label="Project showcase"
-          minHeight="260px"
-          className="w-full"
-        />
+
+        {/* Robotics Workshop */}
+        <div className="overflow-hidden rounded-2xl border-3 border-navy shadow-[5px_5px_0_#0D2136]">
+          <img
+            src="/images/1.jpeg"
+            alt="Students building robotics projects"
+            className="w-full h-[260px] object-cover"
+          />
+        </div>
+
+        {/* Classroom Session */}
+        <div className="overflow-hidden rounded-2xl border-3 border-navy shadow-[5px_5px_0_#0D2136]">
+          <img
+            src="/images/3.jpeg"
+            alt="Students learning robotics with a mentor"
+            className="w-full h-[260px] object-cover"
+          />
+        </div>
+
+        {/* Student Projects */}
+        <div className="overflow-hidden rounded-2xl border-3 border-navy shadow-[5px_5px_0_#0D2136]">
+          <img
+            src="/images/4.jpeg"
+            alt="Students showcasing their robotics projects"
+            className="w-full h-[260px] object-cover"
+          />
+        </div>
+
       </div>
     </header>
   );
