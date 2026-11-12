@@ -88,7 +88,7 @@ export default function Achievements() {
           {/* Award / Prize Day */}
           <div className="overflow-hidden rounded-[18px] border-3 border-navy shadow-brutal">
             <img
-              src="/images/7.jpeg"
+              src="/images/14.jpeg"
               alt="Student award and prize ceremony"
               className="w-full h-[170px] object-cover object-center"
             />
@@ -97,7 +97,7 @@ export default function Achievements() {
           {/* Circuit Workshop */}
           <div className="overflow-hidden rounded-[18px] border-3 border-navy shadow-brutal">
             <img
-              src="/images/14.jpeg"
+              src="/images/8.jpeg"
               alt="Students participating in electronics circuit workshop"
               className="w-full h-[170px] object-cover object-center"
             />
