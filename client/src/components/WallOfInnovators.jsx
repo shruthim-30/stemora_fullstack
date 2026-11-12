@@ -1,7 +1,7 @@
 import React from 'react';
 import PhotoPlaceholder from './PhotoPlaceholder';
 
-export default function WallOfInnovators({ innovators, onPhotoUpdate }) {
+export default function WallOfInnovators({ innovators, onPhotoUpdate, editable = false }) {
   const list = innovators && innovators.length > 0 ? innovators : [
     {
       id: 1,
@@ -80,6 +80,7 @@ export default function WallOfInnovators({ innovators, onPhotoUpdate }) {
               <PhotoPlaceholder
                 label={`Photo of ${student.name}`}
                 initialImage={student.photo_url}
+                editable={editable}
                 minHeight="190px"
                 className="!border-0 !border-b-3 !border-navy !rounded-none !shadow-none"
                 onImageChange={(newUrl) => {

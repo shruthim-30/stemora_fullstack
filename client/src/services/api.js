@@ -1,6 +1,33 @@
 const API_BASE = '/api';
 
 export const api = {
+  // Admin authentication
+  async loginAdmin(credentials) {
+    const res = await fetch(`${API_BASE}/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials)
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Failed to sign in');
+    return result.data;
+  },
+
+  async getAdminSession() {
+    const res = await fetch(`${API_BASE}/admin/session`);
+    if (res.status === 401) return false;
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Failed to verify admin session');
+    return Boolean(result.data?.authenticated);
+  },
+
+  async logoutAdmin() {
+    const res = await fetch(`${API_BASE}/admin/logout`, { method: 'POST' });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Failed to sign out');
+    return result;
+  },
+
   // Enquiries
   async submitEnquiry(data) {
     const res = await fetch(`${API_BASE}/enquiries`, {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function Navbar() {
+export default function Navbar({ onOpenAdmin }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
@@ -44,6 +44,14 @@ export default function Navbar() {
 
         {/* Right Actions Wrapper (Enquire Now & Mobile Menu) */}
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onOpenAdmin}
+            className="hidden sm:inline-flex items-center justify-center font-bold text-sm bg-white text-[#0F172A] border-2 border-[#0F172A] px-4 py-2.5 rounded-full hover:bg-slate-100 transition-colors"
+          >
+            Admin
+          </button>
+
           {/* Enquire Now Pill Button */}
           <a
             href="#contact"
@@ -93,6 +101,18 @@ export default function Navbar() {
               >
                 Enquire now
               </a>
+            </li>
+            <li>
+              <button
+                type="button"
+                onClick={() => {
+                  handleLinkClick();
+                  onOpenAdmin?.();
+                }}
+                className="w-full text-center block font-bold text-sm bg-white text-[#0F172A] border-2 border-[#0F172A] py-3 rounded-full"
+              >
+                Admin
+              </button>
             </li>
           </ul>
         </div>

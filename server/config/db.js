@@ -4,7 +4,7 @@ const path = require('path');
 require('dotenv').config();
 
 const DB_TYPE = process.env.DB_TYPE || (process.env.DB_HOST ? 'mysql' : 'json');
-const JSON_DB_FILE = path.join(__dirname, '..', 'database', 'local_data.json');
+const JSON_DB_FILE = process.env.JSON_DB_FILE || path.join(__dirname, '..', 'database', 'local_data.json');
 
 let pool = null;
 let localData = null;
@@ -125,29 +125,32 @@ const initialData = {
 };
 
 function loadJsonDb() {
-  try {
-    if (fs.existsSync(JSON_DB_FILE)) {
-      const raw = fs.readFileSync(JSON_DB_FILE, 'utf-8');
-      localData = JSON.parse(raw);
-    } else {
-      localData = JSON.parse(JSON.stringify(initialData));
-      saveJsonDb();
+  if (fs.existsSync(JSON_DB_FILE)) {
+    try {
+      localData = JSON.parse(fs.readFileSync(JSON_DB_FILE, 'utf-8'));
+    } catch (error) {
+      throw new Error(`Could not read JSON database at ${JSON_DB_FILE}: ${error.message}`);
     }
-  } catch (err) {
-    console.warn('[DB] Falling back to fresh initial data:', err.message);
-    localData = JSON.parse(JSON.stringify(initialData));
+    return;
   }
+
+  localData = JSON.parse(JSON.stringify(initialData));
+  saveJsonDb();
 }
 
 function saveJsonDb() {
   try {
     fs.writeFileSync(JSON_DB_FILE, JSON.stringify(localData, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('[DB] Failed to save JSON database:', err.message);
+  } catch (error) {
+    throw new Error(`Could not save JSON database at ${JSON_DB_FILE}: ${error.message}`);
   }
 }
 
 async function initDb() {
+  if (process.env.NODE_ENV === 'production' && DB_TYPE !== 'mysql') {
+    throw new Error('Production requires DB_TYPE=mysql and a configured MySQL connection.');
+  }
+
   if (DB_TYPE === 'mysql') {
     try {
       console.log(`[DB] Attempting MySQL connection to ${process.env.DB_HOST}:${process.env.DB_PORT || 3306}...`);
@@ -168,20 +171,46 @@ async function initDb() {
       connection.release();
       return { type: 'mysql' };
     } catch (err) {
-      console.warn(`[DB] MySQL connection failed (${err.message}). Using local JSON storage fallback for now.`);
+      const failedPool = pool;
+      pool = null;
+      if (failedPool) {
+        await failedPool.end().catch(closeError => {
+          console.error('[DB] Failed to close unavailable MySQL pool:', closeError.message);
+        });
+      }
+
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error(`MySQL connection failed: ${err.message}`);
+      }
+
+      console.warn(`[DB] MySQL connection failed (${err.message}). Using local JSON storage in development.`);
       loadJsonDb();
       return { type: 'json' };
     }
-  } else {
-    console.log('[DB] Using local JSON database (ideal for zero-config testing & deployment without external DB setup).');
+  }
+
+  if (DB_TYPE === 'json') {
+    console.log('[DB] Using local JSON database.');
     loadJsonDb();
     return { type: 'json' };
   }
+
+  throw new Error(`Unsupported DB_TYPE "${DB_TYPE}". Use "mysql" or "json".`);
 }
 
 // Database helper functions supporting both MySQL and JSON storage
 const db = {
   init: initDb,
+
+  async healthCheck() {
+    if (pool) {
+      await pool.query('SELECT 1');
+      return { type: 'mysql', status: 'connected' };
+    }
+
+    if (!localData) loadJsonDb();
+    return { type: 'json', status: 'connected' };
+  },
 
   // --- ENQUIRIES ---
   async createEnquiry({ school_name, contact_person, phone, email, programme, message }) {
@@ -222,8 +251,10 @@ const db = {
 
   async updateEnquiryStatus(id, status) {
     if (pool) {
-      await pool.execute('UPDATE enquiries SET status = ? WHERE id = ?', [status, id]);
-      return { id, status };
+      const [result] = await pool.execute('UPDATE enquiries SET status = ? WHERE id = ?', [status, id]);
+      if (result.affectedRows) return { id, status };
+      const [rows] = await pool.execute('SELECT id FROM enquiries WHERE id = ?', [id]);
+      return rows.length ? { id, status } : null;
     } else {
       if (!localData) loadJsonDb();
       const item = localData.enquiries.find(e => e.id === parseInt(id));

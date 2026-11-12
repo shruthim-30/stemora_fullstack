@@ -20,9 +20,6 @@ function createTransporter() {
     auth: {
       user,
       pass
-    },
-    tls: {
-      rejectUnauthorized: false // Helps avoid SSL handshake errors on GoDaddy shared cPanel
     }
   });
 }

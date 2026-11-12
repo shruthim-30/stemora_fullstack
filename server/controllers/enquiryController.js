@@ -3,10 +3,16 @@ const { sendAdminEnquiryNotification, sendUserEnquiryConfirmation } = require('.
 
 exports.createEnquiry = async (req, res) => {
   try {
-    const { school_name, contact_person, phone, email, programme, message } = req.body;
+    const body = req.body || {};
+    const fields = ['school_name', 'contact_person', 'phone', 'email'];
+    const normalized = Object.fromEntries(
+      [...fields, 'programme', 'message'].map(key => [
+        key,
+        typeof body[key] === 'string' ? body[key].trim() : ''
+      ])
+    );
 
-    // Validation
-    if (!school_name || !contact_person || !phone || !email) {
+    if (fields.some(field => !normalized[field])) {
       return res.status(400).json({
         success: false,
         error: 'Please provide all required fields: School Name, Contact Person, Phone, and Email.'
@@ -15,21 +21,35 @@ exports.createEnquiry = async (req, res) => {
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(normalized.email)) {
       return res.status(400).json({
         success: false,
         error: 'Please provide a valid email address.'
       });
     }
 
+    const maxLengths = {
+      school_name: 255,
+      contact_person: 255,
+      phone: 50,
+      email: 255,
+      programme: 100,
+      message: 10000
+    };
+    const oversizedField = Object.entries(maxLengths)
+      .find(([field, maxLength]) => normalized[field].length > maxLength);
+    if (oversizedField) {
+      return res.status(400).json({
+        success: false,
+        error: `${oversizedField[0].replace('_', ' ')} is too long.`
+      });
+    }
+
     // Insert into database
     const enquiry = await db.createEnquiry({
-      school_name: school_name.trim(),
-      contact_person: contact_person.trim(),
-      phone: phone.trim(),
-      email: email.trim().toLowerCase(),
-      programme: programme ? programme.trim() : 'Robotics Course',
-      message: message ? message.trim() : ''
+      ...normalized,
+      email: normalized.email.toLowerCase(),
+      programme: normalized.programme || 'Robotics Course'
     });
 
     // Trigger emails asynchronously so user response is fast
@@ -44,7 +64,7 @@ exports.createEnquiry = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Your enquiry has been received! Our STEM team will contact you shortly.',
+      message: 'Your enquiry has been received. Our STEM team will contact you shortly.',
       data: enquiry
     });
   } catch (error) {
@@ -86,6 +106,9 @@ exports.updateStatus = async (req, res) => {
     }
 
     const updated = await db.updateEnquiryStatus(id, status);
+    if (!updated) {
+      return res.status(404).json({ success: false, error: 'Enquiry not found.' });
+    }
     return res.json({
       success: true,
       message: `Enquiry #${id} status updated to ${status}`,

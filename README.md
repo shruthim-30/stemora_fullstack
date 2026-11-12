@@ -1,6 +1,6 @@
 # Stemora – Lighting Young Minds (Full-Stack Dynamic Platform)
 
-A full-stack, responsive, and dynamic web application for **Stemora**, built from scratch with **React.js**, **Node.js**, **Express**, **Tailwind CSS**, and **MySQL/SQLite database** with automated **SMTP mailing** and **photo upload capabilities**.
+A full-stack, responsive, and dynamic web application for **Stemora**, built with **React**, **Vite**, **Node.js**, **Express**, **Tailwind CSS**, and MySQL (with local JSON storage for development), plus optional SMTP email and photo uploads.
 
 Designed with Stemora's playful retro-modern STEM branding (navy `#0D2136`, teal `#1FAFA9`, gold `#F2AA1F`, neo-brutalist borders, card drop shadows, and interactive progress widgets).
 
@@ -11,7 +11,7 @@ Designed with Stemora's playful retro-modern STEM branding (navy `#0D2136`, teal
 1. **Active School Demo & Programme Enquiry System**:
    - Live form submission from teachers, principals, and coordinators.
    - Saves enquiries directly into the MySQL database with timestamps and status tracking (`new`, `in_progress`, `contacted`, `closed`).
-   - Automatically sends:
+   - Sends email when SMTP is configured:
      - **Admin Notification Email** to the Stemora management team with full school details.
      - **Confirmation Receipt Email** to the school with personalized Stemora branding.
 
@@ -20,11 +20,11 @@ Designed with Stemora's playful retro-modern STEM branding (navy `#0D2136`, teal
    - They load dynamically from the database and can be edited anytime through the built-in Admin panel.
 
 3. **Interactive Photo Placeholders & Uploads**:
-   - All photo placeholder slots (Hero showcase, About team, Gallery, Wall of Innovators, Summer camp) support **one-click image selection & upload**.
-   - Backed by an Express `multer` image processing API with local storage in `/uploads`.
+   - Authenticated admins can upload student photos from the Wall of Innovators.
+   - Backed by an Express `multer` upload API; set `UPLOAD_DIR` to a persistent writable folder in production.
 
 4. **Built-in Admin Control Panel Modal**:
-   - Accessible via the **⚙️ Admin** button in the navbar and footer.
+   - Accessible via **Admin** in the navbar or footer. Configure an admin username, password, and session secret in environment variables; there are no committed default credentials.
    - **Enquiry Manager**: View submissions, contact details, date/time, and update lead statuses.
    - **Live Statistics Editor**: Update numbers without modifying or redeploying code.
    - **Settings & Summer Camp Manager**: Update phone, email, Bangalore campus locations, and Summer 2027 camp dates.
@@ -39,7 +39,7 @@ Designed with Stemora's playful retro-modern STEM branding (navy `#0D2136`, teal
   - We have included `deploy/database-setup-godaddy.sql` which creates all tables and seeds default data in one click.
   - The backend uses `mysql2/promise` with a connection pool for fast querying.
 - **Local / Zero-Config Mode**:
-  - The backend includes an automated fallback to a local JSON database (`server/database/local_data.json`). If MySQL is not running on your local machine, the application still runs 100% smoothly without crashing!
+  - Local development defaults to JSON storage in `server/database/local_data.json`. Set `DB_TYPE=mysql` to use MySQL locally. A MySQL failure in production stops startup instead of appearing healthy while saving elsewhere.
 
 ### 2. Mailing: What Should You Use for Emails?
 - **Option 1: GoDaddy cPanel Webmail / SMTP (Recommended for GoDaddy)**:
@@ -48,7 +48,7 @@ Designed with Stemora's playful retro-modern STEM branding (navy `#0D2136`, teal
   - Cost: Free (included with your GoDaddy hosting).
 - **Option 2: Transactional Email API (Brevo / Resend / SendGrid)**:
   - If you want guaranteed deliverability to prevent spam filtering, you can use **Resend** (3,000 free emails/month) or **Brevo** (300 free emails/day).
-  - Just paste their SMTP host, user, and API key into `server/.env`.
+  - Set their SMTP host, user, and API key in local environment variables or GoDaddy's Node.js app environment settings; never commit credentials.
 - **Option 3: Microsoft 365 through GoDaddy**:
   - If your domain email is managed by GoDaddy's Microsoft 365, use `smtp.office365.com`, port `587`, TLS.
 
@@ -107,14 +107,15 @@ stemora-fullstack/
 │   │   └── initDb.js                 # Automatic MySQL Table Initializer
 │   ├── uploads/                      # Uploaded images directory
 │   ├── .env.example                  # Environment template
-│   ├── .env                          # Active server configuration
+│   ├── middleware/adminAuth.js       # Signed admin session authentication
+│   ├── routes/adminRoutes.js         # Admin login/logout/session
+│   ├── .env.example                  # Safe environment template
 │   ├── package.json
 │   └── server.js                     # Main Express server entry point
 │
 ├── deploy/                           # Deployment Suite for GoDaddy
 │   ├── godaddy-cpanel-guide.md       # Comprehensive step-by-step GoDaddy guide
 │   ├── database-setup-godaddy.sql    # 1-Click MySQL database dump
-│   └── .htaccess                     # Apache SPA rewrite & caching rules
 │
 ├── package.json                      # Monorepo scripts
 └── README.md
@@ -127,24 +128,14 @@ stemora-fullstack/
 ### Prerequisites
 Make sure **Node.js** (v18 or higher) and **npm** are installed on your computer.
 
-### Step 1: Start the Backend (Server)
+### Start the complete application
 ```bash
-cd stemora-fullstack/server
-npm install
+npm run setup
 npm run dev
 ```
-The server will start on `http://localhost:5000`:
-- `GET http://localhost:5000/api/health` -> Health check
-- `GET http://localhost:5000/api/content` -> Dynamic content (stats, innovators, settings)
+Open `http://localhost:3000`. Vite proxies `/api` and `/uploads` to Express on port 5000. The backend uses local JSON storage unless MySQL is configured.
 
-### Step 2: Start the Frontend (Client)
-In a new terminal window:
-```bash
-cd stemora-fullstack/client
-npm install
-npm run dev
-```
-Open your browser and navigate to `http://localhost:3000` (or the port displayed in your terminal).
+To enable the admin panel locally, set `ADMIN_USERNAME`, `ADMIN_PASSWORD` (12+ characters), and `ADMIN_SESSION_SECRET` (32+ bytes) in `server/.env`; see [server/.env.example](./server/.env.example). Do not commit `server/.env`.
 
 ---
 
@@ -153,13 +144,16 @@ Open your browser and navigate to `http://localhost:3000` (or the port displayed
 | Method | Endpoint | Description |
 |---|---|---|
 | `POST` | `/api/enquiries` | Submit a new school demo inquiry (triggers email notification) |
-| `GET` | `/api/enquiries` | Retrieve all submitted inquiries (Admin) |
-| `PATCH` | `/api/enquiries/:id/status` | Update inquiry status (`new`, `in_progress`, `contacted`, `closed`) |
+| `POST` | `/api/admin/login` | Sign in using environment-configured admin credentials |
+| `GET` | `/api/admin/session` | Check the current admin session |
+| `POST` | `/api/admin/logout` | End the current admin session |
+| `GET` | `/api/enquiries` | Retrieve inquiries (admin session required) |
+| `PATCH` | `/api/enquiries/:id/status` | Update inquiry status (admin session required) |
 | `GET` | `/api/content` | Fetch live site stats, innovators, testimonials, and settings |
-| `PUT` | `/api/content/stats` | Update site statistics in database |
-| `PUT` | `/api/content/settings` | Update contact phone/email/location/summer camp details |
-| `POST` | `/api/upload` | Upload image file (multipart/form-data) |
-| `GET` | `/api/health` | Server uptime & status check |
+| `PUT` | `/api/content/stats` | Update site statistics (admin session required) |
+| `PUT` | `/api/content/settings` | Update contact and summer camp details (admin session required) |
+| `POST` | `/api/upload` | Upload image (admin session required, multipart/form-data) |
+| `GET` | `/api/health` | Server and database connectivity check |
 
 ---
 
@@ -167,6 +161,6 @@ Open your browser and navigate to `http://localhost:3000` (or the port displayed
 
 Refer to the complete walkthrough in [`deploy/godaddy-cpanel-guide.md`](./deploy/godaddy-cpanel-guide.md):
 1. **Database**: Create MySQL database in GoDaddy cPanel and import `deploy/database-setup-godaddy.sql`.
-2. **Backend**: Upload `server/` to cPanel via **Setup Node.js App** and configure `.env`.
-3. **Frontend**: Run `npm run build` inside `client/` and upload `dist/` + `.htaccess` to `public_html/`.
-4. **Mailing**: Create an email account in cPanel Email Accounts and update `SMTP_USER` and `SMTP_PASS` in `.env`.
+2. **Application**: Configure one Node.js app at the domain root, upload the project with `client/dist/` alongside `server/`, and set production environment variables in cPanel.
+3. **Build**: Run `npm run build` from the project root; Express serves `client/dist/` and same-origin `/api` routes.
+4. **Secrets and uploads**: Configure database, admin, optional SMTP, and a persistent `UPLOAD_DIR` using cPanel's environment settings. Do not upload or commit a local `.env`.

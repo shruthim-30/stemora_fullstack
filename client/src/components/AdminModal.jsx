@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 
-export default function AdminModal({ isOpen, onClose, content, onContentUpdated }) {
+export default function AdminModal({ isOpen, onClose, content, onContentUpdated, onAuthChange }) {
   const [activeTab, setActiveTab] = useState('enquiries');
   const [enquiries, setEnquiries] = useState([]);
   const [loadingEnquiries, setLoadingEnquiries] = useState(false);
+  const [enquiriesError, setEnquiriesError] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
 
   // Form states for stats
   const [statsForm, setStatsForm] = useState({
@@ -36,18 +42,73 @@ export default function AdminModal({ isOpen, onClose, content, onContentUpdated 
   }, [content]);
 
   useEffect(() => {
-    if (isOpen && activeTab === 'enquiries') {
+    if (!isOpen) return undefined;
+
+    let active = true;
+    setCheckingAuth(true);
+    setLoginError('');
+    api.getAdminSession()
+      .then(authenticated => {
+        if (!active) return;
+        setIsAuthenticated(authenticated);
+        onAuthChange?.(authenticated);
+      })
+      .catch(error => {
+        if (!active) return;
+        setIsAuthenticated(false);
+        onAuthChange?.(false);
+        setLoginError(error.message);
+      })
+      .finally(() => {
+        if (active) setCheckingAuth(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [isOpen, onAuthChange]);
+
+  useEffect(() => {
+    if (isOpen && isAuthenticated && activeTab === 'enquiries') {
       loadEnquiries();
     }
-  }, [isOpen, activeTab]);
+  }, [isOpen, isAuthenticated, activeTab]);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoggingIn(true);
+    setLoginError('');
+    try {
+      await api.loginAdmin(loginForm);
+      setIsAuthenticated(true);
+      onAuthChange?.(true);
+      setLoginForm({ username: '', password: '' });
+    } catch (error) {
+      setLoginError(error.message);
+    } finally {
+      setLoggingIn(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await api.logoutAdmin();
+    } catch (error) {
+      setLoginError(error.message);
+    } finally {
+      setIsAuthenticated(false);
+      onAuthChange?.(false);
+    }
+  };
 
   const loadEnquiries = async () => {
     try {
       setLoadingEnquiries(true);
+      setEnquiriesError('');
       const data = await api.getEnquiries();
       setEnquiries(data || []);
     } catch (err) {
-      console.warn('Could not fetch enquiries:', err.message);
+      setEnquiriesError(err.message || 'Could not load enquiries.');
     } finally {
       setLoadingEnquiries(false);
     }
@@ -113,7 +174,9 @@ export default function AdminModal({ isOpen, onClose, content, onContentUpdated 
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b-2 border-grid bg-paper px-6 pt-3 gap-2">
+        {isAuthenticated && (
+        <div className="flex items-center justify-between border-b-2 border-grid bg-paper px-6 pt-3 gap-2 overflow-x-auto">
+          <div className="flex gap-2">
           <button
             onClick={() => setActiveTab('enquiries')}
             className={`px-4 py-2 font-bold text-sm rounded-t-lg transition-colors border-t border-x ${
@@ -146,10 +209,67 @@ export default function AdminModal({ isOpen, onClose, content, onContentUpdated 
           >
             ⚙️ Contact & Summer Settings
           </button>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="shrink-0 px-3 py-2 text-sm font-bold text-navy hover:text-teal-dark"
+          >
+            Sign out
+          </button>
         </div>
+        )}
 
         {/* Tab Body */}
         <div className="p-6 overflow-y-auto flex-1">
+          {!isAuthenticated ? (
+            <div className="max-w-md mx-auto py-6">
+              <h4 className="text-xl font-extrabold text-navy mb-2">Admin sign in</h4>
+              <p className="text-sm text-mut mb-5">Sign in to manage enquiries and site content.</p>
+
+              {checkingAuth ? (
+                <p className="text-sm font-semibold text-mut">Checking your session...</p>
+              ) : (
+                <form onSubmit={handleLogin} className="space-y-4">
+                  {loginError && (
+                    <p role="alert" className="bg-red-50 border-2 border-red-500 rounded-lg p-3 text-sm font-semibold text-red-700">
+                      {loginError}
+                    </p>
+                  )}
+                  <label className="block text-sm font-bold text-navy">
+                    Username
+                    <input
+                      type="text"
+                      autoComplete="username"
+                      value={loginForm.username}
+                      onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+                      className="mt-1 w-full border-2 border-navy rounded-lg p-2.5"
+                      required
+                    />
+                  </label>
+                  <label className="block text-sm font-bold text-navy">
+                    Password
+                    <input
+                      type="password"
+                      autoComplete="current-password"
+                      value={loginForm.password}
+                      onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                      className="mt-1 w-full border-2 border-navy rounded-lg p-2.5"
+                      required
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    disabled={loggingIn}
+                    className="btn-brutal btn-gold text-navy font-extrabold px-6 py-3 disabled:opacity-70"
+                  >
+                    {loggingIn ? 'Signing in...' : 'Sign in'}
+                  </button>
+                </form>
+              )}
+            </div>
+          ) : (
+          <>
           {savingMsg && (
             <div className="mb-4 p-3 bg-teal/20 border-2 border-teal-dark rounded-xl text-teal-dark font-bold text-sm">
               {savingMsg}
@@ -169,7 +289,11 @@ export default function AdminModal({ isOpen, onClose, content, onContentUpdated 
                 </button>
               </div>
 
-              {loadingEnquiries ? (
+              {enquiriesError ? (
+                <div role="alert" className="py-6 text-center text-red-700 font-semibold">
+                  Could not load enquiries: {enquiriesError}
+                </div>
+              ) : loadingEnquiries ? (
                 <div className="py-12 text-center text-mut font-bold">Loading enquiries from database...</div>
               ) : enquiries.length === 0 ? (
                 <div className="py-12 text-center text-mut bg-paper border border-dashed border-grid rounded-xl">
@@ -375,6 +499,8 @@ export default function AdminModal({ isOpen, onClose, content, onContentUpdated 
                 Save Settings
               </button>
             </form>
+          )}
+          </>
           )}
         </div>
       </div>

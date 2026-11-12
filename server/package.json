@@ -1,12 +1,13 @@
 {
   "name": "stemora-backend",
   "version": "1.0.0",
-  "description": "Stemora Full-Stack Backend API with Express, MySQL/SQLite, and Nodemailer",
+  "description": "Stemora Full-Stack Backend API with Express, MySQL/JSON storage, and Nodemailer",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon --ignore 'database/*' --ignore 'uploads/*' server.js",
-    "init-db": "node database/initDb.js"
+    "init-db": "node database/initDb.js",
+    "test": "node --test"
   },
   "keywords": [
     "stemora",

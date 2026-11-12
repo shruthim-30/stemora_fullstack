@@ -2,14 +2,14 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
 
-export default function ContactSection() {
+export default function ContactSection({ settings }) {
 
-  // STEMORA Official Contact Details
-  const currentSettings = {
-    phone: "7090000417",
-    email: "stemoraeducation@gmail.com",
-    location: "Geethanjali Layout, HAL 3rd Stage, Bhoomi Reddy Colony, New Thippasandra, Bengaluru, Karnataka 560075, India"
+  const currentSettings = settings || {
+    phone: "+91 98765 43210",
+    email: "contact@stemora.in",
+    location: "Indiranagar & HSR Layout, Bangalore"
   };
+  const whatsappNumber = String(currentSettings.phone).replace(/\D/g, '');
 
   const [formData, setFormData] = useState({
     school_name: '',
@@ -123,6 +123,21 @@ export default function ContactSection() {
             <div className="flex items-center">
               <span className="inline-block w-3 h-3 bg-teal border-2 border-navy rounded-full mr-3 shrink-0" />
               <span>
+                WhatsApp:{' '}
+                <a
+                  href={`https://wa.me/${whatsappNumber}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-teal-dark hover:underline"
+                >
+                  Message our team
+                </a>
+              </span>
+            </div>
+
+            <div className="flex items-center">
+              <span className="inline-block w-3 h-3 bg-teal border-2 border-navy rounded-full mr-3 shrink-0" />
+              <span>
                 Email:{' '}
                 <a
                   href={`mailto:${currentSettings.email}`}
@@ -157,7 +172,7 @@ export default function ContactSection() {
                   Enquiry sent successfully!
                 </p>
                 <p className="font-normal text-xs text-mut mt-0.5">
-                  Thank you! Our STEM director will get in touch with you shortly. A confirmation has also been dispatched.
+                  Thank you! Our STEM team will get in touch with you shortly.
                 </p>
               </div>
             </div>

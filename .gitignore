@@ -1,3 +1,6 @@
 node_modules
-server/ .env
+**/node_modules/
+**/.env
+**/.env.*
+!**/.env.example
 stemora-deploy.zip
